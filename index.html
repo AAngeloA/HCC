@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HCC Initiating Market Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fbfaf8; --bg2:#ffffff; --panel:#ffffff; --panel2:#f6f3ef;
+    --line:#e8e2dc; --line2:#d7cfc6;
+    --text:#2d2a32; --muted:#7d7684; --faint:#9a93a1;
+    --treme:#830051; --treme-dim:#f2dfeb;
+    --atezo:#17758a; --atezo-dim:#dbeef2;
+    --gold:#b8860b; --good:#1a7f37; --bad:#c02e3d;
+    --grid:rgba(45,42,50,.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1100px 600px at 85% -5%, rgba(131,0,81,.04), transparent 60%),
+      radial-gradient(900px 500px at 0% 100%, rgba(23,117,138,.05), transparent 55%),
+      var(--bg);
+    color:var(--text); font-family:'Inter',sans-serif; line-height:1.46; font-size:16px; font-weight:500;
+    -webkit-font-smoothing:antialiased; min-height:100vh;
+  }
+  .wrap{max-width:1280px;margin:0 auto;padding:32px 28px 80px}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+
+  header{background:linear-gradient(120deg,#830051,#5c0e3f 72%);border-radius:16px;
+    padding:28px 30px 26px;margin-bottom:8px}
+  .head-row{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;
+    text-transform:uppercase;color:#f0ab00;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:26px;height:1px;background:#f0ab00}
+  h1{font-weight:800;font-size:clamp(26px,4vw,42px);line-height:1.05;letter-spacing:-.02em;color:#fff}
+  h1 em{font-style:normal;color:#f0ab00}
+  .sub{color:#e7c3d8;font-size:14.5px;margin-top:14px;max-width:820px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:18px;font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;color:rgba(255,255,255,.55);letter-spacing:.04em}
+  .meta b{color:#e7c3d8;font-weight:500}
+
+  nav{position:sticky;top:0;z-index:20;display:flex;gap:0;flex-wrap:wrap;
+    padding:12px 0 0;margin:10px 0 28px;border-bottom:1px solid var(--line);
+    background:linear-gradient(var(--bg),var(--bg) 70%,transparent)}
+  nav button{background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);padding:10px 16px;transition:.15s}
+  nav button:hover{color:var(--text)}
+  nav button.active{color:var(--treme);border-bottom-color:var(--treme);font-weight:700}
+
+  section{margin-bottom:44px;scroll-margin-top:60px}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+  .sec-head h2{font-weight:800;font-size:24px;letter-spacing:-.02em;color:var(--treme)}
+  .sec-head .tag{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint);letter-spacing:.08em}
+
+  .grid{display:grid;gap:16px}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  @media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3,.g2{grid-template-columns:1fr}}
+  @media(max-width:560px){.g4{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .card-title{font-weight:700;font-size:14.5px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .note{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.5}
+
+  .kpi{position:relative;overflow:hidden}
+  .kpi .label{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .kpi .val{font-weight:800;font-size:30px;letter-spacing:-.02em;margin-top:8px;font-variant-numeric:tabular-nums}
+  .kpi .foot{font-size:12px;color:var(--muted);margin-top:6px}
+  .kpi .dot{position:absolute;top:16px;right:16px;width:9px;height:9px;border-radius:50%}
+  .kpi.treme .val{color:var(--treme)} .kpi.treme .dot{background:var(--treme)}
+  .kpi.atezo .val{color:var(--atezo)} .kpi.atezo .dot{background:var(--atezo)}
+  .kpi.neutral .val{color:var(--text)}
+
+  .up{color:var(--good)} .down{color:var(--bad)}
+  .chart-box{position:relative;height:340px}
+  .chart-box.sm{height:300px}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:right;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:600}
+  tbody tr:hover{background:var(--panel2)}
+  td.mono,th.mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+  .bar{height:7px;border-radius:4px;background:var(--treme-dim);position:relative;min-width:60px;display:inline-block;width:70px;vertical-align:middle;margin-right:8px}
+  .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--treme)}
+  .barcell{width:150px}
+  .legend{display:flex;gap:16px;font-size:11.5px;color:var(--muted);font-family:'IBM Plex Mono',monospace;flex-wrap:wrap}
+  .legend .swatch{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+  footer{border-top:1px solid var(--line);margin-top:30px;padding-top:20px;font-size:11.5px;color:var(--faint);font-family:'IBM Plex Mono',monospace;line-height:1.7}
+  .hide{display:none}
+  .subnav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+  .subnav button{background:var(--panel);border:1px solid var(--line);border-radius:20px;cursor:pointer;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.05em;color:var(--muted);
+    padding:6px 14px;transition:.15s}
+  .subnav button:hover{color:var(--text);border-color:var(--line2)}
+  .subnav button.active{background:var(--treme);border-color:var(--treme);color:#fff;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="head-row">
+      <div>
+        <div class="eyebrow">PBS + RPBS · Unresectable HCC · 1L</div>
+        <h1>HCC <em>Initiating</em> Market Share</h1>
+        <div class="sub">Tremelimumab (IMJUDO, STRIDE regimen — single one-off dose) vs atezolizumab initiating scripts (public + private) as the initiating comparator in first-line unresectable hepatocellular carcinoma. One tremelimumab dose &asymp; one new STRIDE patient.</div>
+        <div class="meta">
+          <span><b>Data</b>&nbsp; Medicare Statistics · PBS &amp; RPBS Services combined</span>
+          <span><b>Window</b>&nbsp; Jan 2024 – May 2026</span>
+          <span><b>Treme items</b>&nbsp; 15090F (public) · 15108E (private)</span>
+          <span><b>Atezo init items</b>&nbsp; 12167J · 12171N</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <button data-sec="overview" class="active">Overview</button>
+    <button data-sec="growth">Growth</button>
+    <button data-sec="states">State × Month</button>
+  </nav>
+
+  <section id="overview">
+    <div class="sec-head"><h2>Initiating market — Tremelimumab vs Atezolizumab</h2><span class="tag">Since STRIDE launch (Nov 2025)</span></div>
+    <div class="grid g4" id="kpis"></div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card">
+        <div class="card-title">Monthly initiating volumes
+          <span class="legend"><span><i class="swatch" style="background:var(--atezo)"></i>Atezo init</span><span><i class="swatch" style="background:var(--treme)"></i>Treme (STRIDE)</span></span></div>
+        <div class="chart-box"><canvas id="volChart"></canvas></div>
+        <div class="note">Atezolizumab initiations have softened through 2026 as tremelimumab-based STRIDE captures a growing slice of new starts.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Tremelimumab share of new starts %</div>
+        <div class="chart-box"><canvas id="shareChart"></canvas></div>
+        <div class="note">Treme share of the initiating market: 2.4% at launch (Nov 25) rising to ~17–19% by mid-2026.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="growth" class="hide">
+    <div class="sec-head"><h2>Growth — Monthly · rQTR · YTD · MAT</h2><span class="tag" id="geoTag">National · to May 2026</span></div>
+    <div class="subnav" id="geoTabs"></div>
+    <div class="grid g3" id="growthKpis"></div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card">
+        <div class="card-title"><span id="volTitle">Initiation comparison — monthly</span>
+          <span class="legend"><span><i class="swatch" style="background:var(--atezo)"></i>Atezo init</span><span><i class="swatch" style="background:var(--treme)"></i>Treme (STRIDE)</span></span></div>
+        <div class="chart-box"><canvas id="geoVolChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Treme share of new starts %</div>
+        <div class="chart-box"><canvas id="geoShareChart"></canvas></div>
+        <div class="note" id="geoNote"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">Growth summary</div>
+      <table id="growthTable">
+        <thead><tr>
+          <th>Metric</th><th class="mono">Atezo init</th><th class="mono">Treme (STRIDE)</th><th class="mono">Total market</th><th class="mono">Treme share</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="note">MoM = latest month vs prior. rQTR = rolling 3 months (Mar–May 26) vs preceding 3 (Dec 25–Feb 26). YTD = Jan–May 2026 vs Jan–May 2025. MAT = moving annual total (Jun 25–May 26) vs prior 12 months. Tremelimumab has &lt;12 months of history, so its YTD / MAT are shown launch-to-date (no prior-year base). Small-state percentages swing hard on tiny volumes.</div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">Monthly initiation comparison — table</div>
+      <div style="overflow-x:auto"><table id="geoMonthlyTable"></table></div>
+    </div>
+  </section>
+
+  <section id="states" class="hide">
+    <div class="sec-head"><h2>State × Month — initiating share</h2><span class="tag">Treme share of new starts</span></div>
+    <div class="grid g2">
+      <div class="card">
+        <div class="card-title">Treme share by state — rolling quarter (Mar–May 26)
+          <span class="legend"><span><i class="swatch" style="background:var(--treme)"></i>Treme</span><span><i class="swatch" style="background:var(--atezo)"></i>Atezo</span></span></div>
+        <table id="stateShareTable">
+          <thead><tr><th>State</th><th class="mono">Treme</th><th class="mono">Atezo</th><th class="barcell">Treme share %</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">Tremelimumab STRIDE doses by state × month</div>
+        <div class="chart-box sm"><canvas id="stateStack"></canvas></div>
+        <div class="note">NSW leads uptake, followed by VIC and QLD. Small-state figures (TAS, NT) are volatile on tiny denominators.</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">Treme initiating share % by state × month</div>
+      <div style="overflow-x:auto"><table id="heatTable"></table></div>
+      <div class="note">Shading = tremelimumab share of that state's new starts (treme ÷ treme+atezo). "·" = no starts recorded.</div>
+    </div>
+  </section>
+
+  <footer>
+    HCC Initiating Market Analysis · Data to May 2026 &nbsp;|&nbsp; Source: Medicare Statistics (PBS + RPBS Services combined) &nbsp;|&nbsp; rQTR = rolling 3-month quarter · MoM = month-on-month · YTD = year-to-date · MAT = moving annual total<br>
+    Tremelimumab administered as a single one-off STRIDE dose (1 dose &asymp; 1 new patient). Figures are PBS/RPBS service counts, not unique patients.
+  </footer>
+</div>
+
+<script>
+const D = {"months": ["JAN2024", "FEB2024", "MAR2024", "APR2024", "MAY2024", "JUN2024", "JUL2024", "AUG2024", "SEP2024", "OCT2024", "NOV2024", "DEC2024", "JAN2025", "FEB2025", "MAR2025", "APR2025", "MAY2025", "JUN2025", "JUL2025", "AUG2025", "SEP2025", "OCT2025", "NOV2025", "DEC2025", "JAN2026", "FEB2026", "MAR2026", "APR2026", "MAY2026"], "atezo_nat": [250, 189, 163, 222, 212, 156, 220, 190, 188, 239, 205, 201, 235, 220, 208, 236, 246, 250, 255, 245, 241, 244, 246, 210, 197, 168, 162, 135, 128], "treme_nat": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 20, 24, 35, 31, 32, 26], "states": ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"], "atezo": {"NSW": [88, 76, 59, 57, 88, 49, 56, 66, 49, 61, 70, 78, 80, 70, 69, 76, 69, 71, 78, 83, 79, 75, 89, 66, 64, 53, 40, 42, 36], "VIC": [59, 44, 30, 59, 44, 28, 56, 39, 54, 48, 36, 32, 50, 59, 45, 35, 54, 40, 47, 30, 54, 62, 48, 38, 49, 50, 44, 26, 26], "QLD": [53, 36, 27, 40, 35, 22, 45, 39, 30, 82, 53, 52, 46, 37, 44, 50, 46, 65, 54, 64, 42, 43, 46, 55, 38, 37, 39, 32, 28], "SA": [29, 15, 24, 26, 26, 21, 29, 21, 27, 15, 20, 17, 20, 23, 23, 21, 22, 33, 24, 34, 27, 23, 27, 16, 21, 11, 17, 12, 11], "WA": [17, 12, 14, 30, 14, 31, 31, 18, 22, 23, 23, 10, 26, 26, 19, 33, 33, 32, 32, 20, 17, 26, 22, 28, 25, 15, 19, 18, 22], "TAS": [2, 3, 2, 4, 2, 4, 2, 3, 3, 3, 2, 7, 9, 3, 3, 9, 14, 8, 12, 9, 16, 12, 6, 3, 0, 0, 3, 5, 5], "ACT": [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "NT": [2, 3, 7, 6, 3, 1, 1, 4, 3, 6, 0, 4, 2, 1, 4, 11, 8, 1, 8, 5, 6, 3, 8, 4, 0, 2, 0, 0, 0]}, "treme": {"NSW": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 12, 12, 12, 18, 17, 15], "VIC": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 14, 5, 9, 3], "QLD": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 4, 6, 6, 4, 1], "SA": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 1, 0, 3], "WA": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1, 1, 1, 2, 1], "TAS": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 1], "ACT": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "NT": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2]}};
+const C={treme:'#830051',atezo:'#17758a',gold:'#b8860b',text:'#2d2a32',muted:'#7d7684',grid:'rgba(45,42,50,.08)'};
+const M=D.months, A=D.atezo_nat, T=D.treme_nat;
+const N=M.length, li=N-1;
+const fmtM=m=>m.slice(0,3)+" '"+m.slice(5);
+const labels=M.map(fmtM);
+const sum=(arr,a,b)=>arr.slice(a,b+1).reduce((x,y)=>x+y,0);
+const totArr=M.map((_,i)=>A[i]+T[i]);
+const shareArr=M.map((_,i)=>totArr[i]?100*T[i]/totArr[i]:0);
+
+const latShare=shareArr[li].toFixed(1);
+const tremeMAT=sum(T,li-11,li);
+const atezoYTD26=sum(A,24,28), atezoYTD25=sum(A,12,16);
+const atezoYTDg=(100*(atezoYTD26-atezoYTD25)/atezoYTD25).toFixed(1);
+const ytdShareTot=sum(T,24,28)/(sum(A,24,28)+sum(T,24,28))*100;
+document.getElementById('kpis').innerHTML=`
+  <div class="card kpi treme"><span class="dot"></span><span class="label">Treme share — latest (May 26)</span><div class="val">${latShare}%</div><div class="foot">of all new HCC starts</div></div>
+  <div class="card kpi treme"><span class="dot"></span><span class="label">Treme share — YTD 2026</span><div class="val">${ytdShareTot.toFixed(1)}%</div><div class="foot">Jan–May 26 initiating market</div></div>
+  <div class="card kpi treme"><span class="dot"></span><span class="label">Treme STRIDE — launch to date</span><div class="val">${tremeMAT}</div><div class="foot">doses since Nov 2025</div></div>
+  <div class="card kpi atezo"><span class="dot"></span><span class="label">Atezo init — YTD growth</span><div class="val ${atezoYTDg<0?'down':'up'}">${atezoYTDg}%</div><div class="foot">Jan–May 26 vs 25</div></div>`;
+
+new Chart(document.getElementById('volChart'),{type:'bar',
+  data:{labels,datasets:[
+    {label:'Atezo init',data:A,backgroundColor:C.atezo,stack:'s'},
+    {label:'Treme',data:T,backgroundColor:C.treme,stack:'s'}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:90,minRotation:90,font:{size:9},autoSkip:false,callback:(v,i)=>i%2?'':labels[i]}},
+      y:{stacked:true,grid:{color:C.grid},beginAtZero:true,title:{display:true,text:'services / month'}}}}});
+
+new Chart(document.getElementById('shareChart'),{type:'line',
+  data:{labels,datasets:[{data:shareArr,borderColor:C.treme,backgroundColor:'rgba(131,0,81,.08)',fill:true,tension:.3,pointRadius:M.map((_,i)=>i>=22?3:0),pointBackgroundColor:C.treme}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{grid:{display:false},ticks:{maxRotation:90,minRotation:90,font:{size:9},autoSkip:false,callback:(v,i)=>i%2?'':labels[i]}},
+      y:{grid:{color:C.grid},beginAtZero:true,ticks:{callback:v=>v+'%'}}}}});
+
+function pct(a,b){return b?(100*(a-b)/b):0;}
+const shareOf=(t,a)=>{const s=t+a;return s?(100*t/s).toFixed(1)+'%':'—';};
+function arrowInline(g){return `<span class="${g<0?'down':'up'}">${g>=0?'▲':'▼'}${Math.abs(g).toFixed(0)}%</span>`;}
+
+// ---- Geography-aware growth tab ----
+const GEOS=['National','NSW','VIC','QLD','SA','WA','TAS','ACT','NT'];
+let geoVolChart=null, geoShareChart=null, curGeo='National';
+function geoSeries(g){
+  if(g==='National') return {a:A.slice(), t:T.slice()};
+  return {a:D.atezo[g].slice(), t:D.treme[g].slice()};
+}
+function renderGeo(g){
+  curGeo=g;
+  const {a,t}=geoSeries(g);
+  const gt=M.map((_,i)=>a[i]+t[i]);
+  document.getElementById('geoTag').textContent=g+' · to May 2026';
+  document.getElementById('volTitle').textContent='Initiation comparison — monthly · '+g;
+
+  // KPIs
+  const momTot=pct(gt[li],gt[li-1]);
+  const rqA=sum(a,li-2,li), rqAp=sum(a,li-5,li-3), rqT=sum(t,li-2,li), rqTp=sum(t,li-5,li-3);
+  const gA=pct(rqA,rqAp), gT=rqTp?pct(rqT,rqTp):null;
+  document.getElementById('growthKpis').innerHTML=`
+    <div class="card kpi neutral"><span class="label">${g} market — MoM</span><div class="val ${momTot<0?'down':'up'}">${gt[li-1]?momTot.toFixed(1)+'%':'—'}</div><div class="foot">May 26 vs Apr 26</div></div>
+    <div class="card kpi atezo"><span class="dot"></span><span class="label">Atezo init — rQTR</span><div class="val ${gA<0?'down':'up'}">${rqAp?gA.toFixed(1)+'%':'—'}</div><div class="foot">Mar–May vs Dec–Feb</div></div>
+    <div class="card kpi treme"><span class="dot"></span><span class="label">Treme — rQTR</span><div class="val ${gT!=null&&gT<0?'down':'up'}">${gT!=null?(gT>=0?'+':'')+gT.toFixed(0)+'%':(rqT?'new':'—')}</div><div class="foot">Mar–May vs Dec–Feb</div></div>`;
+
+  // Growth table
+  const ytdA26=sum(a,24,28), ytdA25=sum(a,12,16), ytdT26=sum(t,24,28);
+  const matA_=sum(a,li-11,li), matAp_=sum(a,li-23,li-12), matT_=sum(t,li-11,li);
+  const rows=[
+    ['MoM (May 26 v Apr 26)', a[li],a[li-1], t[li],t[li-1], gt[li],gt[li-1]],
+    ['rQTR (Mar–May v Dec–Feb)', rqA,rqAp, rqT,rqTp, rqA+rqT,rqAp+rqTp],
+    ['YTD (Jan–May 26 v 25)', ytdA26,ytdA25, ytdT26,0, ytdA26+ytdT26,ytdA25],
+    ['MAT (Jun25–May26 v prior)', matA_,matAp_, matT_,0, matA_+matT_,matAp_]
+  ];
+  document.querySelector('#growthTable tbody').innerHTML=rows.map(r=>{
+    const ga=r[2]?arrowInline(pct(r[1],r[2])):'<span style="color:var(--faint)">—</span>';
+    const gtr=r[4]?arrowInline(pct(r[3],r[4])):(r[3]?'<span style="color:var(--faint)">new*</span>':'<span style="color:var(--faint)">—</span>');
+    const gtot=r[6]?arrowInline(pct(r[5],r[6])):'<span style="color:var(--faint)">—</span>';
+    return `<tr><td>${r[0]}</td>
+      <td class="mono">${r[1]} ${ga}</td>
+      <td class="mono">${r[3]} ${gtr}</td>
+      <td class="mono">${r[5]} ${gtot}</td>
+      <td class="mono" style="color:var(--treme);font-weight:600">${shareOf(r[3],r[1])}</td></tr>`;
+  }).join('');
+
+  // Note
+  const shNow=gt[li]?100*t[li]/gt[li]:0;
+  document.getElementById('geoNote').textContent = g==='NSW'
+    ? 'NSW public atezo initiations (12171N) record as zero in PBS data — NSW public hospitals fund this via a different channel, so NSW share reads high on the PBS-visible market.'
+    : (g==='National' ? 'Treme share of the initiating market: 2.4% at launch (Nov 25) rising to ~17–19% by mid-2026.'
+    : `Latest month treme share in ${g}: ${shNow.toFixed(1)}%. Small volumes make state-level shares volatile.`);
+
+  // Charts
+  if(geoVolChart) geoVolChart.destroy();
+  if(geoShareChart) geoShareChart.destroy();
+  geoVolChart=new Chart(document.getElementById('geoVolChart'),{type:'bar',
+    data:{labels,datasets:[
+      {label:'Atezo init',data:a,backgroundColor:C.atezo,stack:'s'},
+      {label:'Treme',data:t,backgroundColor:C.treme,stack:'s'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:90,minRotation:90,font:{size:9},autoSkip:false,callback:(v,i)=>i%2?'':labels[i]}},
+        y:{stacked:true,grid:{color:C.grid},beginAtZero:true,title:{display:true,text:'services / month'}}}}});
+  const shArr=M.map((_,i)=>gt[i]?100*t[i]/gt[i]:null);
+  geoShareChart=new Chart(document.getElementById('geoShareChart'),{type:'line',
+    data:{labels,datasets:[{data:shArr,borderColor:C.treme,backgroundColor:'rgba(131,0,81,.08)',fill:true,tension:.3,spanGaps:true,pointRadius:M.map((_,i)=>i>=22?3:0),pointBackgroundColor:C.treme}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{maxRotation:90,minRotation:90,font:{size:9},autoSkip:false,callback:(v,i)=>i%2?'':labels[i]}},
+        y:{grid:{color:C.grid},beginAtZero:true,ticks:{callback:v=>v+'%'}}}}});
+
+  // Monthly table (since launch, Nov25 onward)
+  const mIdx=M.map((_,i)=>i).filter(i=>i>=22);
+  let hd='<thead><tr><th>Month</th><th class="mono">Atezo init</th><th class="mono">Treme</th><th class="mono">Total</th><th class="mono">Treme share</th><th class="mono">Mkt MoM</th></tr></thead>';
+  let bd='<tbody>'+mIdx.map(i=>{
+    const mom=(i>0&&gt[i-1])?pct(gt[i],gt[i-1]):null;
+    return `<tr><td>${labels[i]}</td><td class="mono">${a[i]}</td><td class="mono">${t[i]}</td><td class="mono">${gt[i]}</td>
+      <td class="mono" style="color:var(--treme);font-weight:600">${gt[i]?(100*t[i]/gt[i]).toFixed(1)+'%':'—'}</td>
+      <td class="mono">${mom!=null?arrowInline(mom):'—'}</td></tr>`;
+  }).join('')+'</tbody>';
+  document.getElementById('geoMonthlyTable').innerHTML=hd+bd;
+
+  document.querySelectorAll('#geoTabs button').forEach(b=>b.classList.toggle('active',b.dataset.geo===g));
+}
+document.getElementById('geoTabs').innerHTML=GEOS.map(g=>`<button data-geo="${g}">${g}</button>`).join('');
+document.querySelectorAll('#geoTabs button').forEach(b=>b.onclick=()=>renderGeo(b.dataset.geo));
+renderGeo('National');
+
+const stIdx=[26,27,28];
+const stateRows=D.states.map(s=>{
+  const t=stIdx.reduce((x,i)=>x+D.treme[s][i],0);
+  const a=stIdx.reduce((x,i)=>x+D.atezo[s][i],0);
+  return {s,t,a,sh:(t+a)?100*t/(t+a):0};
+}).filter(r=>r.a+r.t>0).sort((x,y)=>y.sh-x.sh);
+const maxSh=Math.max(...stateRows.map(r=>r.sh),1);
+document.querySelector('#stateShareTable tbody').innerHTML=stateRows.map(r=>`
+  <tr><td>${r.s}</td><td class="mono">${r.t}</td><td class="mono">${r.a}</td>
+  <td><div class="bar"><i style="width:${(r.sh/maxSh*100).toFixed(0)}%"></i></div>
+  <span class="mono" style="font-size:11px;color:var(--treme)">${r.sh.toFixed(1)}%</span></td></tr>`).join('');
+
+const stCols=['NSW','VIC','QLD','SA','WA','TAS','NT'];
+const stColors=['#830051','#b0316f','#c85b91','#d98cb0','#e6b3cd','#f0d0e0','#9a93a1'];
+const rIdx=M.map((_,i)=>i).filter(i=>i>=22);
+new Chart(document.getElementById('stateStack'),{type:'bar',
+  data:{labels:rIdx.map(i=>labels[i]),datasets:stCols.map((s,k)=>({label:s,data:rIdx.map(i=>D.treme[s][i]),backgroundColor:stColors[k],stack:'s'}))},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
+    scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:C.grid},beginAtZero:true}}}});
+
+const heat=document.getElementById('heatTable');
+let head='<thead><tr><th>State</th>'+rIdx.map(i=>`<th class="mono">${labels[i]}</th>`).join('')+'</tr></thead>';
+let body='<tbody>'+stCols.map(s=>{
+  return '<tr><td>'+s+'</td>'+rIdx.map(i=>{
+    const t=D.treme[s][i],a=D.atezo[s][i],tot=t+a;
+    if(tot===0)return '<td class="mono" style="color:var(--faint)">·</td>';
+    const sh=100*t/tot; const alpha=(sh/100*.85+.08).toFixed(2);
+    return `<td class="mono" style="background:rgba(131,0,81,${alpha});color:${sh>45?'#fff':'var(--text)'}">${sh.toFixed(0)}%</td>`;
+  }).join('')+'</tr>';
+}).join('')+'</tbody>';
+heat.innerHTML=head+body;
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('section').forEach(s=>s.classList.add('hide'));
+  document.getElementById(b.dataset.sec).classList.remove('hide');
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+</script>
+</body>
+</html>
